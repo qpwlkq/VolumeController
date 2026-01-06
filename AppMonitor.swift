@@ -122,4 +122,18 @@ class AppMonitor: ObservableObject {
     func getRunningApps() -> [NSRunningApplication] {
         return NSWorkspace.shared.runningApplications.filter { $0.activationPolicy == .regular }
     }
+    
+    // 强制限制所有应用的音量不超过系统音量
+    func enforceSystemVolumeLimit(_ limit: Int) {
+        var hasChanges = false
+        for i in 0..<monitoredApps.count {
+            if monitoredApps[i].safeVolume > limit {
+                monitoredApps[i].safeVolume = limit
+                hasChanges = true
+            }
+        }
+        if hasChanges {
+            saveRules()
+        }
+    }
 }

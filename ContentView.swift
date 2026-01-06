@@ -18,7 +18,9 @@ struct ContentView: View {
                         .foregroundColor(.blue)
                     
                     Slider(value: $systemVolume, in: 0...100, onEditingChanged: { _ in
-                        SystemVolume.shared.setVolume(Int(systemVolume))
+                        let vol = Int(systemVolume)
+                        SystemVolume.shared.setVolume(vol)
+                        AppMonitor.shared.enforceSystemVolumeLimit(vol)
                     })
                     
                     Text("\(Int(systemVolume))%")
@@ -97,6 +99,8 @@ struct ContentView: View {
         let vol = Double(SystemVolume.shared.getVolume())
         if abs(vol - systemVolume) > 1 { // 简单的防抖动
             systemVolume = vol
+            // 当检测到系统音量从外部改变时，也需要应用规则
+            AppMonitor.shared.enforceSystemVolumeLimit(Int(vol))
         }
     }
 }
