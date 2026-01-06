@@ -40,7 +40,7 @@ struct ContentView: View {
                             .italic()
                     } else {
                         ForEach($appMonitor.monitoredApps) { $rule in
-                            AppRuleRow(rule: $rule, onDelete: {
+                            AppRuleRow(rule: $rule, systemLimit: systemVolume, onDelete: {
                                 appMonitor.removeRule(id: rule.id)
                             })
                         }
@@ -104,6 +104,7 @@ struct ContentView: View {
 // 单个应用规则行视图
 struct AppRuleRow: View {
     @Binding var rule: AppRule
+    var systemLimit: Double
     var onDelete: (() -> Void)?
     
     var body: some View {
@@ -144,9 +145,15 @@ struct AppRuleRow: View {
                     .foregroundColor(.secondary)
                 
                 Slider(
-                    value: $rule.safeVolumeDouble,
+                    value: Binding(
+                        get: { Double(rule.safeVolume) },
+                        set: { newValue in
+                            let limit = max(0, systemLimit)
+                            let clamped = min(newValue, limit)
+                            rule.safeVolume = Int(clamped)
+                        }
+                    ),
                     in: 0...100,
-                    step: 1,
                     onEditingChanged: { isEditing in
                         // 只在编辑结束时更新规则，避免频繁IO操作
                         if !isEditing {
