@@ -143,12 +143,18 @@ struct AppRuleRow: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                 
-                Slider(value: Binding(
-                    get: { Double(rule.safeVolume) },
-                    set: { rule.safeVolume = Int($0) }
-                ), in: 0...100, onEditingChanged: { _ in
-                    AppMonitor.shared.updateRule(rule)
-                })
+                Slider(
+                    value: $rule.safeVolumeDouble,
+                    in: 0...100,
+                    step: 1,
+                    onEditingChanged: { isEditing in
+                        // 只在编辑结束时更新规则，避免频繁IO操作
+                        if !isEditing {
+                            print("Updated safeVolume for \(rule.name) to \(rule.safeVolume)")
+                            AppMonitor.shared.updateRule(rule)
+                        }
+                    }
+                )
                 .disabled(!rule.isEnabled)
             }
         }

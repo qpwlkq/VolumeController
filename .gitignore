@@ -1,0 +1,34 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+*.xcodeproj
+*.xcworkspace
+
+# Build artifacts
+*.o
+*.dylib
+*.so
+*.a
+*.out
+*.app
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary files
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Local configuration
+local.properties
+.env
+
+# JoyCode
+.joycode/
+.vscode/

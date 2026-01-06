@@ -9,6 +9,12 @@ struct AppRule: Identifiable, Codable, Equatable {
     let bundleId: String
     var safeVolume: Int // 启动时的安全音量
     var isEnabled: Bool // 规则是否启用
+    
+    // 用于Slider的Double类型计算属性
+    var safeVolumeDouble: Double {
+        get { Double(safeVolume) }
+        set { safeVolume = Int(newValue) }
+    }
 }
 
 class AppMonitor: ObservableObject {
