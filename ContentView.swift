@@ -40,7 +40,9 @@ struct ContentView: View {
                             .italic()
                     } else {
                         ForEach($appMonitor.monitoredApps) { $rule in
-                            AppRuleRow(rule: $rule)
+                            AppRuleRow(rule: $rule, onDelete: {
+                                appMonitor.removeRule(id: rule.id)
+                            })
                         }
                         .onDelete { indices in
                             indices.forEach { index in
@@ -102,6 +104,7 @@ struct ContentView: View {
 // 单个应用规则行视图
 struct AppRuleRow: View {
     @Binding var rule: AppRule
+    var onDelete: (() -> Void)?
     
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -123,6 +126,16 @@ struct AppRuleRow: View {
                     .padding(4)
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(4)
+                
+                Button(action: {
+                    onDelete?()
+                }) {
+                    Image(systemName: "trash.fill")
+                        .foregroundColor(.red)
+                        .opacity(0.7)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(width: 24, height: 24)
             }
             
             HStack {
