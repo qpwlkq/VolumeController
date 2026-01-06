@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 
 // 主入口
 @main
@@ -17,6 +18,7 @@ struct VolumeControllerApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     var statusItem: NSStatusItem!
     var popover: NSPopover!
+    var cancellables = Set<AnyCancellable>()
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 初始化应用逻辑
@@ -28,7 +30,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // 使用系统图标
             button.image = NSImage(systemSymbolName: "speaker.wave.2.circle", accessibilityDescription: "Volume Control")
             button.action = #selector(togglePopover(_:))
+            button.imagePosition = .imageLeft
         }
+        
+        // 监听音量变化并更新菜单栏
+        SystemVolume.shared.$volume
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] volume in
+                self?.updateMenuBar(volume: volume)
+            }
+            .store(in: &cancellables)
         
         // 创建弹出窗口
         popover = NSPopover()
@@ -37,6 +48,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // 设置 SwiftUI 视图作为内容
         popover.contentViewController = NSHostingController(rootView: ContentView())
+    }
+    
+    func updateMenuBar(volume: Int) {
+        if let button = statusItem.button {
+            button.title = " \(volume)%"
+            // 根据音量大小切换图标
+            let iconName: String
+            if SystemVolume.shared.isMuted() || volume == 0 {
+                iconName = "speaker.slash"
+            } else if volume < 33 {
+                iconName = "speaker.wave.1"
+            } else if volume < 66 {
+                iconName = "speaker.wave.2"
+            } else {
+                iconName = "speaker.wave.3"
+            }
+            button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "Volume \(volume)%")
+            button.imagePosition = .imageLeft
+        }
     }
     
     @objc func togglePopover(_ sender: AnyObject?) {

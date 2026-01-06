@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var systemVolume: Double = 0
+    @ObservedObject var systemVolumeManager = SystemVolume.shared
     @ObservedObject var appMonitor = AppMonitor.shared
     @State private var showAddAppSheet = false
     
@@ -14,16 +14,17 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
                 
                 HStack {
-                    Image(systemName: systemVolume == 0 ? "speaker.slash.fill" : "speaker.wave.2.fill")
+                    Image(systemName: systemVolumeManager.volume == 0 || systemVolumeManager.isMuted() ? "speaker.slash.fill" : "speaker.wave.2.fill")
                         .foregroundColor(.blue)
                     
-                    Slider(value: $systemVolume, in: 0...100, onEditingChanged: { _ in
-                        let vol = Int(systemVolume)
-                        SystemVolume.shared.setVolume(vol)
-                        AppMonitor.shared.enforceSystemVolumeLimit(vol)
+                    Slider(value: Binding(
+                        get: { Double(systemVolumeManager.volume) },
+                        set: { systemVolumeManager.setVolume(Int($0)) }
+                    ), in: 0...100, onEditingChanged: { _ in
+                        AppMonitor.shared.enforceSystemVolumeLimit(systemVolumeManager.volume)
                     })
                     
-                    Text("\(Int(systemVolume))%")
+                    Text("\(systemVolumeManager.volume)%")
                         .frame(width: 40, alignment: .trailing)
                         .font(.monospacedDigit(.body)())
                 }
@@ -42,7 +43,7 @@ struct ContentView: View {
                             .italic()
                     } else {
                         ForEach($appMonitor.monitoredApps) { $rule in
-                            AppRuleRow(rule: $rule, systemLimit: systemVolume, onDelete: {
+                            AppRuleRow(rule: $rule, systemLimit: Double(systemVolumeManager.volume), onDelete: {
                                 appMonitor.removeRule(id: rule.id)
                             })
                         }
@@ -83,24 +84,11 @@ struct ContentView: View {
             .background(Color(NSColor.windowBackgroundColor))
         }
         .frame(width: 320, height: 480)
-        .onAppear {
-            updateVolume()
-            // 定时刷新音量显示（因为用户可能通过键盘调节音量）
-            Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
-                updateVolume()
-            }
+        .onChange(of: systemVolumeManager.volume) { newVolume in
+             AppMonitor.shared.enforceSystemVolumeLimit(newVolume)
         }
         .sheet(isPresented: $showAddAppSheet) {
             AddAppSheet(isPresented: $showAddAppSheet)
-        }
-    }
-    
-    func updateVolume() {
-        let vol = Double(SystemVolume.shared.getVolume())
-        if abs(vol - systemVolume) > 1 { // 简单的防抖动
-            systemVolume = vol
-            // 当检测到系统音量从外部改变时，也需要应用规则
-            AppMonitor.shared.enforceSystemVolumeLimit(Int(vol))
         }
     }
 }
@@ -136,8 +124,8 @@ struct AppRuleRow: View {
                     onDelete?()
                 }) {
                     Image(systemName: "trash.fill")
-                        .foregroundColor(.red)
-                        .opacity(0.7)
+                    .foregroundColor(.red)
+                    .opacity(0.7)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .frame(width: 24, height: 24)
